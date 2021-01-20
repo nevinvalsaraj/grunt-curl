@@ -8,7 +8,7 @@ module.exports = function (grunt) {
         dest: 'actual/file.js'
       },
       zip: {
-        src: 'https://github.com/twitter/bootstrap/blob/91b92f9dd09c1794d02c6157daba5405d8f09e39/assets/bootstrap.zip?raw=true',
+        src: 'https://codeload.github.com/primer/github-vscode-theme/zip/v2.0.0',
         dest: 'actual/file.zip'
       },
       get: {

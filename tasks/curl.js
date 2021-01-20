@@ -4,7 +4,7 @@ var path = require('path');
 var _ = require('lodash');
 var async = require('async');
 var gruntRetro = require('grunt-retro');
-var request = require('request');
+var bent = require('bent');
 
 // Define our tasks
 module.exports = function (grunt) {
@@ -119,32 +119,25 @@ module.exports = function (grunt) {
     var options = info.src;
     var dest = info.dest;
 
-    // Request the url
-    var req = request(options);
+    const getStream = bent(options);
 
-    // On error, callback
-    req.on('error', cb);
+    getStream()
+    .then((stream) => {
+      if (stream.statusCode < 200 || stream.statusCode >= 303) {
+        return new Error('Fetching ' + JSON.stringify(options) + ' failed with HTTP status code ' + statusCode)
+      } else {
+        var destdir = path.dirname(dest);
+        grunt.file.mkdir(destdir);
+        var writeStream = fs.createWriteStream(dest);
+        stream.pipe(writeStream);
 
-    // On response, callback for writing out the stream
-    req.on('response', function handleResponse (res) {
-      // Assert the statusCode was good
-      var statusCode = res.statusCode;
-      if (statusCode < 200 || statusCode >= 300) {
-        return cb(new Error('Fetching ' + JSON.stringify(options) + ' failed with HTTP status code ' + statusCode));
+        // When the stream errors or completes, exit
+        writeStream.on('error', cb);
+        writeStream.on('close', cb);
       }
-
-      // Otherwise, write out the content
-      var destdir = path.dirname(dest);
-      grunt.file.mkdir(destdir);
-      var writeStream = fs.createWriteStream(dest);
-      // Use `req` as the source of data https://github.com/request/request/blob/v2.51.1/request.js#L1255-L1267
-      // DEV: This is to pipe out gunzipped data
-      var dataStream = req;
-      dataStream.pipe(writeStream);
-
-      // When the stream errors or completes, exit
-      writeStream.on('error', cb);
-      writeStream.on('close', cb);
-    });
+    })
+    .catch((err) => {
+      console.log('Failed to make network call')
+    })
   });
 };
